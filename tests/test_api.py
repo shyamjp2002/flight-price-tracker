@@ -1,7 +1,11 @@
+from datetime import date, timedelta
+
+DEPART = (date.today() + timedelta(days=60)).isoformat()
+
 WATCH = {
     "origin": "hyd",
     "destination": "dxb",
-    "depart_date": "2026-12-01",
+    "depart_date": DEPART,
     "adults": 2,
     "currency": "usd",
     "target_price": 10000,
@@ -25,7 +29,8 @@ def test_create_normalises_codes_and_lists_watch(client):
 
 
 def test_rejects_return_before_departure(client):
-    response = client.post("/api/watches", json={**WATCH, "return_date": "2026-11-01"})
+    earlier = (date.today() + timedelta(days=30)).isoformat()
+    response = client.post("/api/watches", json={**WATCH, "return_date": earlier})
     assert response.status_code == 422
 
 

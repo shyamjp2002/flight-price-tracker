@@ -45,11 +45,14 @@ export default function App() {
     setError('')
     try {
       const result = await api.sendDigest()
-      setDigestNote(
-        result.delivered_to.length
-          ? `Digest sent via ${result.delivered_to.join(', ')}`
-          : 'Digest built, but no notification channel is configured',
-      )
+      const failures = result.delivery_errors ?? []
+      if (result.delivered_to.length) {
+        setDigestNote(`Digest sent via ${result.delivered_to.join(', ')}`)
+      } else if (failures.length) {
+        setDigestNote(`Digest built, but delivery failed — ${failures.join('; ')}`)
+      } else {
+        setDigestNote('Digest built, but no notification channel is configured')
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'digest failed')
     } finally {

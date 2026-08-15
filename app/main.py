@@ -106,9 +106,17 @@ async def get_prices(watch_id: int) -> list[dict]:
 
 @app.post("/api/watches/{watch_id}/check")
 async def check_now(watch_id: int) -> dict:
+    watch = service.get_watch(watch_id)
+    if watch is None:
+        raise HTTPException(status_code=404, detail="watch not found")
+    if watch["depart_date"] < date.today().isoformat():
+        raise HTTPException(
+            status_code=409,
+            detail=f"departure date {watch['depart_date']} is in the past — edit the dates",
+        )
     result = await service.check_watch(watch_id)
     if result is None:
-        raise HTTPException(status_code=404, detail="watch not found or no offers available")
+        raise HTTPException(status_code=404, detail="no offers available for those dates")
     return result
 
 
@@ -162,11 +170,11 @@ async def get_notification_channels() -> dict:
 
 @app.post("/api/notifications/test")
 async def test_notifications() -> dict:
-    delivered = await notifiers.dispatch(
+    sent = await notifiers.dispatch(
         "Flight Price Tracker test alert",
         "This is a test notification from your flight price tracker.",
     )
-    return {"delivered_to": delivered}
+    return {"delivered_to": sent.delivered, "delivery_errors": sent.failed}
 
 
 FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"

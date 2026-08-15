@@ -4,10 +4,12 @@ from datetime import date, timedelta
 from app import airports, insights
 from app.providers.base import SearchRequest
 
+DEPART = (date.today() + timedelta(days=60)).isoformat()
+
 WATCH = {
     "origin": "HYD",
     "destination": "DXB",
-    "depart_date": "2026-12-01",
+    "depart_date": DEPART,
     "adults": 1,
     "currency": "USD",
     "target_price": None,
@@ -84,7 +86,7 @@ def test_flex_watch_records_selected_date(client):
     watch_id = client.post("/api/watches", json={**WATCH, "flex_days": 3}).json()["id"]
     result = client.post(f"/api/watches/{watch_id}/check").json()
 
-    assert abs((date.fromisoformat(result["for_date"]) - date(2026, 12, 1)).days) <= 3
+    assert abs((date.fromisoformat(result["for_date"]) - date.fromisoformat(DEPART)).days) <= 3
     assert client.get(f"/api/watches/{watch_id}/prices").json()[0]["for_date"]
 
 
@@ -104,7 +106,7 @@ def test_airports_endpoint(client):
 def test_explore_endpoint_respects_max_price(client):
     deals = client.get(
         "/api/explore",
-        params={"origin": "HYD", "depart_date": "2026-12-01", "max_price": 400},
+        params={"origin": "HYD", "depart_date": DEPART, "max_price": 400},
     ).json()
 
     assert deals
@@ -122,3 +124,26 @@ def test_digest_summarises_watches(client):
     body = client.get("/api/digest").json()["body"]
     assert "Hyderabad" in body
     assert "Dubai" in body
+
+
+def test_past_departure_date_is_rejected(client):
+    past = (date.today() - timedelta(days=5)).isoformat()
+    response = client.post("/api/watches", json={**WATCH, "depart_date": past})
+
+    assert response.status_code == 422
+    assert "past" in response.text
+
+
+def test_digest_reports_delivery_failure(client, monkeypatch):
+    from app import config, notifiers
+
+    async def boom(self, subject: str, body: str) -> None:
+        raise RuntimeError("smtp down")
+
+    monkeypatch.setattr(config, "ALERT_WEBHOOK_URL", "https://hooks.example.com/x")
+    monkeypatch.setattr(notifiers.WebhookNotifier, "send", boom)
+
+    result = client.post("/api/digest/send").json()
+
+    assert result["delivered_to"] == []
+    assert result["delivery_errors"] == ["webhook: smtp down"]

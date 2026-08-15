@@ -211,11 +211,13 @@ async def check_watch(watch_id: int, provider_name: str = "") -> dict | None:
                 f"(previous low {previous:.2f})"
             )
     delivered: list[str] = []
+    failed: list[str] = []
     if message:
         logger.info("ALERT: %s", message)
-        delivered = await notifiers.dispatch(
+        sent = await notifiers.dispatch(
             f"Fare alert: {row['origin']}→{row['destination']}", message
         )
+        delivered, failed = sent.delivered, sent.failed
         with session() as conn:
             conn.execute(
                 """
@@ -235,6 +237,7 @@ async def check_watch(watch_id: int, provider_name: str = "") -> dict | None:
         "alerted": bool(message),
         "message": message,
         "delivered_to": delivered,
+        "delivery_errors": failed,
     }
 
 
@@ -312,5 +315,9 @@ def digest_body() -> str:
 async def send_digest() -> dict:
     """Email the digest to every configured channel."""
     body = digest_body()
-    delivered = await notifiers.dispatch("Flight tracker daily digest", body)
-    return {"delivered_to": delivered, "body": body}
+    sent = await notifiers.dispatch("Flight tracker daily digest", body)
+    return {
+        "delivered_to": sent.delivered,
+        "delivery_errors": sent.failed,
+        "body": body,
+    }
