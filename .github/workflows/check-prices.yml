@@ -1,0 +1,21 @@
+name: check prices
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger a price sweep
+        env:
+          TRACKER_URL: ${{ vars.TRACKER_URL }}
+        run: |
+          if [ -z "$TRACKER_URL" ]; then
+            echo "Set the TRACKER_URL repository variable to your deployed base URL" >&2
+            exit 1
+          fi
+          curl --fail --silent --show-error --max-time 300 --retry 3 --retry-all-errors \
+            -X POST "$TRACKER_URL/api/check-all"

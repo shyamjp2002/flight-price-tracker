@@ -91,6 +91,22 @@ fly deploy
 firing, and health-checks `/api/health`. Change the interval with
 `fly secrets set CHECK_INTERVAL_MINUTES=15`.
 
+## Deploy to Render (no card required)
+
+`render.yaml` is a Render blueprint: create a new Blueprint instance from this repo, then fill in the
+`sync: false` values (`SMTP_USERNAME`, `SMTP_PASSWORD`, `ALERT_EMAIL_TO`, Amadeus keys) in the
+dashboard.
+
+Two free-tier caveats:
+
+- The instance sleeps after ~15 minutes of inactivity, which stops the in-process scheduler. The
+  `check prices` GitHub Actions workflow runs hourly and POSTs `/api/check-all`, which both wakes the
+  instance and performs the sweep. Set a repository variable `TRACKER_URL` to your Render URL
+  (e.g. `https://flight-price-tracker.onrender.com`) to enable it.
+- Free instances have no persistent disk, so `/srv/data/flights.db` is lost on restart and price
+  history starts over. Upgrade to a paid instance with a disk mounted at `/srv/data` (or use Fly.io
+  above) to keep history.
+
 ## Tests and lint
 
 ```bash

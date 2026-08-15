@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: flight-price-tracker
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATA_DIR
+        value: /srv/data
+      - key: PRICE_PROVIDER
+        value: mock
+      - key: ENABLE_SCHEDULER
+        value: "1"
+      - key: CHECK_INTERVAL_MINUTES
+        value: "60"
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: ALERT_EMAIL_TO
+        sync: false
+      - key: AMADEUS_CLIENT_ID
+        sync: false
+      - key: AMADEUS_CLIENT_SECRET
+        sync: false
