@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { WatchInput } from '../types'
+import { AirportInput } from './AirportInput'
 
 const EMPTY: WatchInput = {
   origin: '',
@@ -9,6 +10,7 @@ const EMPTY: WatchInput = {
   adults: 1,
   currency: 'USD',
   target_price: null,
+  flex_days: 0,
 }
 
 interface Props {
@@ -50,26 +52,18 @@ export function WatchForm({ onCreate }: Props) {
     <form className="card watch-form" onSubmit={submit}>
       <h2>Track a route</h2>
       <div className="grid">
-        <label>
-          From
-          <input
-            required
-            maxLength={3}
-            placeholder="HYD"
-            value={form.origin}
-            onChange={(e) => update({ origin: e.target.value })}
-          />
-        </label>
-        <label>
-          To
-          <input
-            required
-            maxLength={3}
-            placeholder="DXB"
-            value={form.destination}
-            onChange={(e) => update({ destination: e.target.value })}
-          />
-        </label>
+        <AirportInput
+          label="From"
+          placeholder="Hyderabad or HYD"
+          value={form.origin}
+          onChange={(origin) => update({ origin })}
+        />
+        <AirportInput
+          label="To"
+          placeholder="Dubai or DXB"
+          value={form.destination}
+          onChange={(destination) => update({ destination })}
+        />
         <label>
           Depart
           <input
@@ -104,6 +98,19 @@ export function WatchForm({ onCreate }: Props) {
             value={form.currency}
             onChange={(e) => update({ currency: e.target.value })}
           />
+        </label>
+        <label>
+          Flexible dates
+          <select
+            value={form.flex_days}
+            onChange={(e) => update({ flex_days: Number(e.target.value) })}
+          >
+            <option value={0}>exact dates</option>
+            <option value={1}>± 1 day</option>
+            <option value={2}>± 2 days</option>
+            <option value={3}>± 3 days</option>
+            <option value={7}>± 7 days</option>
+          </select>
         </label>
         <label>
           Alert below

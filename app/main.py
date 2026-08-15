@@ -1,5 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
+from datetime import date
 from pathlib import Path
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -7,9 +8,17 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app import config, notifiers, service
+from app import airports, config, notifiers, service
 from app.db import init_db
-from app.models import Alert, PricePoint, Watch, WatchCreate
+from app.models import (
+    Airport,
+    Alert,
+    DestinationDeal,
+    PricePoint,
+    Watch,
+    WatchCreate,
+)
+from app.providers import ProviderError
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -28,6 +37,15 @@ async def lifespan(_: FastAPI):
             id="check_all_active",
             replace_existing=True,
         )
+        if config.DAILY_DIGEST:
+            scheduler.add_job(
+                service.send_digest,
+                "cron",
+                hour=config.DIGEST_HOUR_UTC,
+                minute=0,
+                id="daily_digest",
+                replace_existing=True,
+            )
         scheduler.start()
         logger.info("scheduler started, every %s min", config.CHECK_INTERVAL_MINUTES)
     yield
@@ -50,6 +68,8 @@ async def health() -> dict:
         "status": "ok",
         "provider": config.PROVIDER,
         "check_interval_minutes": config.CHECK_INTERVAL_MINUTES,
+        "max_flex_days": config.MAX_FLEX_DAYS,
+        "daily_digest": config.DAILY_DIGEST,
     }
 
 
@@ -101,6 +121,38 @@ async def check_all() -> dict:
 @app.get("/api/alerts", response_model=list[Alert])
 async def get_alerts() -> list[dict]:
     return service.list_alerts()
+
+
+@app.get("/api/airports", response_model=list[Airport])
+async def search_airports(q: str, limit: int = 8) -> list[dict]:
+    return airports.search(q, limit=min(limit, 20))
+
+
+@app.get("/api/explore", response_model=list[DestinationDeal])
+async def explore(
+    origin: str,
+    depart_date: date,
+    currency: str = "USD",
+    max_price: float | None = None,
+    limit: int = 10,
+) -> list[dict]:
+    """Cheapest destinations from an origin, for open-ended trips."""
+    try:
+        return await service.explore(
+            origin, depart_date, currency, max_price, limit=min(limit, 30)
+        )
+    except ProviderError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from None
+
+
+@app.get("/api/digest")
+async def preview_digest() -> dict:
+    return {"body": service.digest_body(), "enabled": config.DAILY_DIGEST}
+
+
+@app.post("/api/digest/send")
+async def send_digest() -> dict:
+    return await service.send_digest()
 
 
 @app.get("/api/notifications")

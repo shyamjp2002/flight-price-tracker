@@ -1,9 +1,16 @@
 import time
+from datetime import date
 
 import httpx
 
 from app import config
-from app.providers.base import ProviderError, Quote, SearchRequest
+from app.providers.base import (
+    DestinationQuote,
+    ProviderError,
+    Quote,
+    SearchRequest,
+    google_flights_link,
+)
 
 
 class AmadeusProvider:
@@ -84,5 +91,47 @@ class AmadeusProvider:
             price=float(best["price"]["grandTotal"]),
             currency=best["price"].get("currency", request.currency),
             carrier=",".join(sorted(carriers)) or None,
-            deep_link=None,
+            deep_link=google_flights_link(
+                request.origin, request.destination, request.depart_date
+            ),
         )
+
+    async def destinations(
+        self, origin: str, depart_date: date, currency: str, limit: int
+    ) -> list[DestinationQuote]:
+        """Flight Inspiration Search: cheapest destinations from an origin."""
+        params = {
+            "origin": origin,
+            "departureDate": depart_date.isoformat(),
+            "currencyCode": currency,
+            "oneWay": "true",
+        }
+        async with httpx.AsyncClient(timeout=30) as client:
+            token = await self._access_token(client)
+            response = await client.get(
+                f"{self.base_url}/v1/shopping/flight-destinations",
+                params=params,
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            if response.status_code != 200:
+                raise ProviderError(
+                    f"Amadeus inspiration search failed: {response.status_code} "
+                    f"{response.text[:200]}"
+                )
+            data = response.json().get("data", [])
+
+        quotes = [
+            DestinationQuote(
+                destination=entry["destination"],
+                price=float(entry["price"]["total"]),
+                currency=currency,
+                depart_date=date.fromisoformat(entry.get("departureDate", params["departureDate"])),
+                return_date=(
+                    date.fromisoformat(entry["returnDate"]) if entry.get("returnDate") else None
+                ),
+                deep_link=google_flights_link(origin, entry["destination"], depart_date),
+            )
+            for entry in data
+        ]
+        quotes.sort(key=lambda item: item.price)
+        return quotes[:limit]

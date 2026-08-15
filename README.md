@@ -5,8 +5,10 @@ below your target.
 
 - **Backend:** FastAPI + SQLite (stdlib `sqlite3`), APScheduler for recurring checks
 - **Frontend:** React + TypeScript (Vite), recharts price history
-- **Providers:** pluggable — `mock` (deterministic prices, no API key) and `amadeus`
-  (Flight Offers Search)
+- **Providers:** pluggable — `mock` (deterministic prices, no API key), `travelpayouts` (real
+  fares, free token), `amadeus` (enterprise keys only)
+- **Features:** flexible dates (±N days), buy-now-or-wait signal from your own history, airport
+  autocomplete, daily digest email, "go anywhere" cheapest-destination search
 
 ## Quick start (Docker Compose)
 
@@ -41,15 +43,21 @@ cd frontend && npm install && npm run dev          # http://localhost:5173 (prox
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `PRICE_PROVIDER` | `mock` | `mock` or `amadeus` |
-| `AMADEUS_CLIENT_ID` / `AMADEUS_CLIENT_SECRET` | – | Amadeus self-service credentials |
+| `PRICE_PROVIDER` | `mock` | `mock`, `travelpayouts`, or `amadeus` |
+| `TRAVELPAYOUTS_TOKEN` | – | free token for real fares |
+| `AMADEUS_CLIENT_ID` / `AMADEUS_CLIENT_SECRET` | – | Amadeus enterprise credentials |
 | `AMADEUS_BASE_URL` | `https://test.api.amadeus.com` | use `https://api.amadeus.com` for production |
 | `CHECK_INTERVAL_MINUTES` | `60` | scheduler polling interval |
 | `ENABLE_SCHEDULER` | `1` | set `0` to disable background checks |
+| `MAX_FLEX_DAYS` | `3` | cap on a watch's flexible-date window |
+| `DAILY_DIGEST` | `0` | set `1` to email one summary a day |
+| `DIGEST_HOUR_UTC` | `7` | hour (UTC) the digest is sent |
 | `DATABASE_PATH` | `./data/flights.db` | SQLite file location |
 
-Real prices need an Amadeus key (free self-service tier): create an app at
-https://developers.amadeus.com/my-apps, then run with `PRICE_PROVIDER=amadeus`.
+Real prices need a Travelpayouts token (free, no card): sign up and grab it from
+https://www.travelpayouts.com/programs/100/tools/api, then run with
+`PRICE_PROVIDER=travelpayouts`. Amadeus' self-service portal was decommissioned on 17 July 2026,
+so the `amadeus` provider now only works with enterprise credentials.
 
 ## API
 
@@ -64,6 +72,10 @@ https://developers.amadeus.com/my-apps, then run with `PRICE_PROVIDER=amadeus`.
 | POST | `/api/watches/{id}/check` | check one watch now |
 | POST | `/api/check-all` | check every active watch |
 | GET | `/api/alerts` | recorded price-drop alerts, with the channels each was delivered to |
+| GET | `/api/airports?q=` | airport search by IATA code, city, or name |
+| GET | `/api/explore?origin=&depart_date=` | cheapest destinations from one airport |
+| GET | `/api/digest` | preview the daily digest |
+| POST | `/api/digest/send` | send the digest now |
 | GET | `/api/notifications` | channels that are currently configured |
 | POST | `/api/notifications/test` | send a test alert to every configured channel |
 
@@ -115,5 +127,7 @@ cd frontend && npm run lint && npm run build
 
 ## Adding a provider
 
-Implement `cheapest(SearchRequest) -> Quote | None` (see `app/providers/base.py`) and register it in
+Implement `cheapest(SearchRequest) -> Quote | None` and
+`destinations(origin, depart_date, currency, limit) -> list[DestinationQuote]`
+(see `app/providers/base.py`), then register the class in `PROVIDERS` in
 `app/providers/__init__.py`.

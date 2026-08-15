@@ -1,4 +1,12 @@
-import type { Alert, CheckResult, PricePoint, Watch, WatchInput } from './types'
+import type {
+  Airport,
+  Alert,
+  CheckResult,
+  DestinationDeal,
+  PricePoint,
+  Watch,
+  WatchInput,
+} from './types'
 
 interface ValidationIssue {
   loc: (string | number)[]
@@ -51,4 +59,19 @@ export const api = {
   checkWatch: (id: number) => request<CheckResult>(`/api/watches/${id}/check`, { method: 'POST' }),
   checkAll: () => request<{ checked: number }>('/api/check-all', { method: 'POST' }),
   alerts: () => request<Alert[]>('/api/alerts'),
+  airports: (query: string) =>
+    request<Airport[]>(`/api/airports?q=${encodeURIComponent(query)}`),
+  explore: (origin: string, departDate: string, currency: string, maxPrice: number | null) => {
+    const params = new URLSearchParams({
+      origin,
+      depart_date: departDate,
+      currency,
+    })
+    if (maxPrice) {
+      params.set('max_price', String(maxPrice))
+    }
+    return request<DestinationDeal[]>(`/api/explore?${params}`)
+  },
+  digest: () => request<{ body: string; enabled: boolean }>('/api/digest'),
+  sendDigest: () => request<{ delivered_to: string[] }>('/api/digest/send', { method: 'POST' }),
 }

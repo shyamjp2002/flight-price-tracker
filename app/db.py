@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS watches (
     adults INTEGER NOT NULL DEFAULT 1,
     currency TEXT NOT NULL DEFAULT 'USD',
     target_price REAL,
+    flex_days INTEGER NOT NULL DEFAULT 0,
     active INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -25,6 +26,7 @@ CREATE TABLE IF NOT EXISTS prices (
     currency TEXT NOT NULL,
     carrier TEXT,
     deep_link TEXT,
+    for_date TEXT,
     checked_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -43,6 +45,8 @@ CREATE TABLE IF NOT EXISTS alerts (
 
 MIGRATIONS = [
     "ALTER TABLE alerts ADD COLUMN delivered_to TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE watches ADD COLUMN flex_days INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE prices ADD COLUMN for_date TEXT",
 ]
 
 
