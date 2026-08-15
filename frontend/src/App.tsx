@@ -6,6 +6,8 @@ import { WatchCard } from './components/WatchCard'
 import { WatchForm } from './components/WatchForm'
 import type { Alert, Watch, WatchInput } from './types'
 
+const REFRESH_MS = 15000
+
 export default function App() {
   const [watches, setWatches] = useState<Watch[]>([])
   const [alerts, setAlerts] = useState<Alert[]>([])
@@ -14,6 +16,7 @@ export default function App() {
   const [checkingAll, setCheckingAll] = useState(false)
   const [sendingDigest, setSendingDigest] = useState(false)
   const [digestNote, setDigestNote] = useState('')
+  const [refreshedAt, setRefreshedAt] = useState('')
 
   const refresh = useCallback(async () => {
     try {
@@ -25,6 +28,7 @@ export default function App() {
       setWatches(nextWatches)
       setAlerts(nextAlerts)
       setProvider(health.provider)
+      setRefreshedAt(new Date().toLocaleTimeString())
       setError('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'cannot reach the API')
@@ -33,6 +37,18 @@ export default function App() {
 
   useEffect(() => {
     void refresh()
+
+    const tick = () => {
+      if (!document.hidden) {
+        void refresh()
+      }
+    }
+    const timer = window.setInterval(tick, REFRESH_MS)
+    document.addEventListener('visibilitychange', tick)
+    return () => {
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', tick)
+    }
   }, [refresh])
 
   const create = async (payload: WatchInput) => {
@@ -78,6 +94,7 @@ export default function App() {
           <p className="muted">
             Watch a route, poll the cheapest fare, get alerted when it drops. Provider:{' '}
             <code>{provider || '…'}</code>
+            {refreshedAt && ` · auto-refreshed ${refreshedAt}`}
           </p>
         </div>
         <div className="header-actions">
