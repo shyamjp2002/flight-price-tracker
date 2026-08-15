@@ -1,0 +1,15 @@
+services:
+  tracker:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      PRICE_PROVIDER: ${PRICE_PROVIDER:-mock}
+      AMADEUS_CLIENT_ID: ${AMADEUS_CLIENT_ID:-}
+      AMADEUS_CLIENT_SECRET: ${AMADEUS_CLIENT_SECRET:-}
+      CHECK_INTERVAL_MINUTES: ${CHECK_INTERVAL_MINUTES:-60}
+    volumes:
+      - tracker-data:/srv/data
+
+volumes:
+  tracker-data:
