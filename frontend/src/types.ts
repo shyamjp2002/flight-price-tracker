@@ -28,6 +28,7 @@ export interface Alert {
   price: number
   currency: string
   message: string
+  delivered_to: string
   created_at: string
 }
 

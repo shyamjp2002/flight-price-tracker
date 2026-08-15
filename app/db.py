@@ -36,9 +36,14 @@ CREATE TABLE IF NOT EXISTS alerts (
     price REAL NOT NULL,
     currency TEXT NOT NULL,
     message TEXT NOT NULL,
+    delivered_to TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 """
+
+MIGRATIONS = [
+    "ALTER TABLE alerts ADD COLUMN delivered_to TEXT NOT NULL DEFAULT ''",
+]
 
 
 def connect() -> sqlite3.Connection:
@@ -62,3 +67,8 @@ def session() -> Iterator[sqlite3.Connection]:
 def init_db() -> None:
     with session() as conn:
         conn.executescript(SCHEMA)
+        for statement in MIGRATIONS:
+            try:
+                conn.execute(statement)
+            except sqlite3.OperationalError:
+                pass  # already applied

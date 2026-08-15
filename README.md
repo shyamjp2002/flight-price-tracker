@@ -49,10 +49,47 @@ https://developers.amadeus.com/my-apps, then run with `PRICE_PROVIDER=amadeus`.
 | GET | `/api/watches/{id}/prices` | price history |
 | POST | `/api/watches/{id}/check` | check one watch now |
 | POST | `/api/check-all` | check every active watch |
-| GET | `/api/alerts` | recorded price-drop alerts |
+| GET | `/api/alerts` | recorded price-drop alerts, with the channels each was delivered to |
+| GET | `/api/notifications` | channels that are currently configured |
+| POST | `/api/notifications/test` | send a test alert to every configured channel |
 
 An alert is recorded when the fare is at or below `target_price`, or when it undercuts the lowest
 price seen so far.
+
+## Notifications
+
+Every alert is also pushed to whichever channels are configured; a channel is enabled purely by
+setting its variables. Delivery failures are logged and never abort a price check — the alert is
+stored either way.
+
+| Channel | Variables |
+| --- | --- |
+| Email (SMTP) | `SMTP_HOST`, `SMTP_PORT` (default `587`; `465` uses SSL), `SMTP_USERNAME`, `SMTP_PASSWORD`, `ALERT_EMAIL_FROM`, `ALERT_EMAIL_TO` (comma-separated) |
+| Telegram | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` |
+| Webhook | `ALERT_WEBHOOK_URL` (posts JSON `{"subject", "text"}` — works with Slack/Discord/Zapier hooks) |
+
+Gmail needs an [app password](https://myaccount.google.com/apppasswords), not your account password.
+For Telegram, create a bot with @BotFather and read your chat id from
+`https://api.telegram.org/bot<token>/getUpdates`. Verify a setup with
+`curl -X POST localhost:8000/api/notifications/test`.
+
+## Deploy to Fly.io
+
+The scheduler only polls while the API runs, so deploy it to keep watching 24/7. SQLite lives on a
+persistent volume mounted at `/srv/data`.
+
+```bash
+fly launch --no-deploy --copy-config --name flight-price-tracker
+fly volumes create tracker_data --size 1 --region sin
+fly secrets set PRICE_PROVIDER=amadeus AMADEUS_CLIENT_ID=... AMADEUS_CLIENT_SECRET=... \
+  SMTP_HOST=smtp.gmail.com SMTP_USERNAME=you@gmail.com SMTP_PASSWORD=... \
+  ALERT_EMAIL_FROM=you@gmail.com ALERT_EMAIL_TO=you@gmail.com
+fly deploy
+```
+
+`fly.toml` keeps one machine always running (`auto_stop_machines = false`) so scheduled checks keep
+firing, and health-checks `/api/health`. Change the interval with
+`fly secrets set CHECK_INTERVAL_MINUTES=15`.
 
 ## Tests and lint
 

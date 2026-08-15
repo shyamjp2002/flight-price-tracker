@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app import config, service
+from app import config, notifiers, service
 from app.db import init_db
 from app.models import Alert, PricePoint, Watch, WatchCreate
 
@@ -101,6 +101,20 @@ async def check_all() -> dict:
 @app.get("/api/alerts", response_model=list[Alert])
 async def get_alerts() -> list[dict]:
     return service.list_alerts()
+
+
+@app.get("/api/notifications")
+async def get_notification_channels() -> dict:
+    return {"channels": [notifier.name for notifier in notifiers.active_notifiers()]}
+
+
+@app.post("/api/notifications/test")
+async def test_notifications() -> dict:
+    delivered = await notifiers.dispatch(
+        "Flight Price Tracker test alert",
+        "This is a test notification from your flight price tracker.",
+    )
+    return {"delivered_to": delivered}
 
 
 FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
