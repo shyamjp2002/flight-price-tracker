@@ -40,7 +40,7 @@ export function WatchForm({ onCreate }: Props) {
         return_date: form.return_date || null,
         target_price: form.target_price ? Number(form.target_price) : null,
       })
-      setForm(EMPTY)
+      setForm({ ...EMPTY, currency: form.currency, flex_days: form.flex_days })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'failed to create watch')
     } finally {

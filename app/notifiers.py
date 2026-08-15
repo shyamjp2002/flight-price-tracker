@@ -1,5 +1,6 @@
 import logging
 import smtplib
+from dataclasses import dataclass
 from email.message import EmailMessage
 from typing import Protocol
 
@@ -97,13 +98,33 @@ def active_notifiers() -> list[Notifier]:
     return notifiers
 
 
-async def dispatch(subject: str, body: str) -> list[str]:
-    """Send an alert to every configured channel; return the ones that succeeded."""
-    delivered = []
+@dataclass
+class DispatchResult:
+    delivered: list[str]
+    failed: list[str]
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.delivered or self.failed)
+
+
+async def dispatch(subject: str, body: str) -> DispatchResult:
+    """Send an alert to every configured channel, reporting per-channel failures."""
+    result = DispatchResult(delivered=[], failed=[])
     for notifier in active_notifiers():
         try:
             await notifier.send(subject, body)
-            delivered.append(notifier.name)
-        except Exception:
+            result.delivered.append(notifier.name)
+        except Exception as error:
             logger.exception("notifier %s failed", notifier.name)
-    return delivered
+            result.failed.append(f"{notifier.name}: {_reason(error)}")
+    return result
+
+
+def _reason(error: Exception) -> str:
+    """A short, credential-free explanation of why a send failed."""
+    if isinstance(error, smtplib.SMTPAuthenticationError):
+        return "SMTP login rejected (check SMTP_USERNAME and the app password)"
+    if isinstance(error, smtplib.SMTPException | OSError):
+        return f"SMTP error ({type(error).__name__})"
+    return str(error) or type(error).__name__

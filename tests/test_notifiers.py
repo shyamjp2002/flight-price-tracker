@@ -141,7 +141,11 @@ def test_dispatch_isolates_failing_channel(clear_channels, monkeypatch):
         return httpx.Response(200)
 
     _patch_transport(monkeypatch, handler)
-    assert asyncio.run(notifiers.dispatch("Fare alert", "cheap")) == ["webhook"]
+    result = asyncio.run(notifiers.dispatch("Fare alert", "cheap"))
+
+    assert result.delivered == ["webhook"]
+    assert len(result.failed) == 1
+    assert result.failed[0].startswith("telegram: ")
 
 
 def test_check_records_alert_when_notification_fails(client, monkeypatch):
@@ -156,6 +160,7 @@ def test_check_records_alert_when_notification_fails(client, monkeypatch):
 
     assert result["alerted"] is True
     assert result["delivered_to"] == []
+    assert result["delivery_errors"] == ["webhook: smtp down"]
     assert client.get("/api/alerts").json()[0]["delivered_to"] == ""
 
 

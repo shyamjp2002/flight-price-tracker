@@ -73,5 +73,8 @@ export const api = {
     return request<DestinationDeal[]>(`/api/explore?${params}`)
   },
   digest: () => request<{ body: string; enabled: boolean }>('/api/digest'),
-  sendDigest: () => request<{ delivered_to: string[] }>('/api/digest/send', { method: 'POST' }),
+  sendDigest: () =>
+    request<{ delivered_to: string[]; delivery_errors: string[] }>('/api/digest/send', {
+      method: 'POST',
+    }),
 }

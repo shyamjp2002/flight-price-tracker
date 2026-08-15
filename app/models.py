@@ -23,6 +23,13 @@ class WatchCreate(BaseModel):
     def upper(cls, value: str) -> str:
         return value.upper()
 
+    @field_validator("depart_date")
+    @classmethod
+    def depart_not_past(cls, value: date) -> date:
+        if value < date.today():
+            raise ValueError("depart_date is in the past")
+        return value
+
     @field_validator("return_date")
     @classmethod
     def return_after_depart(cls, value: date | None, info) -> date | None:
