@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api'
 import type { PricePoint, Watch } from '../types'
 import { PriceChart } from './PriceChart'
@@ -18,14 +18,17 @@ export function WatchCard({ watch, onChanged }: Props) {
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState('')
 
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     setPoints(await api.prices(watch.id))
-  }
+  }, [watch.id])
 
-  const toggleHistory = async () => {
-    if (!open) {
-      await loadHistory()
+  useEffect(() => {
+    if (open) {
+      void loadHistory()
     }
+  }, [open, loadHistory, watch.checks])
+
+  const toggleHistory = () => {
     setOpen(!open)
   }
 
@@ -35,9 +38,6 @@ export function WatchCard({ watch, onChanged }: Props) {
     try {
       const result = await api.checkWatch(watch.id)
       setNote(result.message || `Now ${money(result.price, result.currency)}`)
-      if (open) {
-        await loadHistory()
-      }
       await onChanged()
     } catch (err) {
       setNote(err instanceof Error ? err.message : 'check failed')

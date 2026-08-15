@@ -1,13 +1,38 @@
 import type { Alert, CheckResult, PricePoint, Watch, WatchInput } from './types'
 
+interface ValidationIssue {
+  loc: (string | number)[]
+  msg: string
+}
+
+function readableError(body: string, response: Response): string {
+  try {
+    const detail = (JSON.parse(body) as { detail?: string | ValidationIssue[] }).detail
+    if (typeof detail === 'string') {
+      return detail
+    }
+    if (Array.isArray(detail)) {
+      return detail
+        .map((issue) => {
+          const field = issue.loc.filter((part) => part !== 'body').join('.')
+          const message = issue.msg.replace(/^Value error, /, '')
+          return field ? `${field}: ${message}` : message
+        })
+        .join('; ')
+    }
+  } catch {
+    // not a JSON error payload — fall through to the raw body
+  }
+  return body || `${response.status} ${response.statusText}`
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     headers: { 'Content-Type': 'application/json' },
     ...init,
   })
   if (!response.ok) {
-    const body = await response.text()
-    throw new Error(body || `${response.status} ${response.statusText}`)
+    throw new Error(readableError(await response.text(), response))
   }
   if (response.status === 204) {
     return undefined as T

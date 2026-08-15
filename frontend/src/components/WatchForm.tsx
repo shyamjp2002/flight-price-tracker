@@ -20,6 +20,11 @@ export function WatchForm({ onCreate }: Props) {
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
+  const update = (patch: Partial<WatchInput>) => {
+    setError('')
+    setForm((current) => ({ ...current, ...patch }))
+  }
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
     setError('')
@@ -52,7 +57,7 @@ export function WatchForm({ onCreate }: Props) {
             maxLength={3}
             placeholder="HYD"
             value={form.origin}
-            onChange={(e) => setForm({ ...form, origin: e.target.value })}
+            onChange={(e) => update({ origin: e.target.value })}
           />
         </label>
         <label>
@@ -62,7 +67,7 @@ export function WatchForm({ onCreate }: Props) {
             maxLength={3}
             placeholder="DXB"
             value={form.destination}
-            onChange={(e) => setForm({ ...form, destination: e.target.value })}
+            onChange={(e) => update({ destination: e.target.value })}
           />
         </label>
         <label>
@@ -71,7 +76,7 @@ export function WatchForm({ onCreate }: Props) {
             required
             type="date"
             value={form.depart_date}
-            onChange={(e) => setForm({ ...form, depart_date: e.target.value })}
+            onChange={(e) => update({ depart_date: e.target.value })}
           />
         </label>
         <label>
@@ -79,7 +84,7 @@ export function WatchForm({ onCreate }: Props) {
           <input
             type="date"
             value={form.return_date ?? ''}
-            onChange={(e) => setForm({ ...form, return_date: e.target.value || null })}
+            onChange={(e) => update({ return_date: e.target.value || null })}
           />
         </label>
         <label>
@@ -89,7 +94,7 @@ export function WatchForm({ onCreate }: Props) {
             min={1}
             max={9}
             value={form.adults}
-            onChange={(e) => setForm({ ...form, adults: Number(e.target.value) })}
+            onChange={(e) => update({ adults: Number(e.target.value) })}
           />
         </label>
         <label>
@@ -97,7 +102,7 @@ export function WatchForm({ onCreate }: Props) {
           <input
             maxLength={3}
             value={form.currency}
-            onChange={(e) => setForm({ ...form, currency: e.target.value })}
+            onChange={(e) => update({ currency: e.target.value })}
           />
         </label>
         <label>
@@ -109,7 +114,7 @@ export function WatchForm({ onCreate }: Props) {
             placeholder="450"
             value={form.target_price ?? ''}
             onChange={(e) =>
-              setForm({ ...form, target_price: e.target.value ? Number(e.target.value) : null })
+              update({ target_price: e.target.value ? Number(e.target.value) : null })
             }
           />
         </label>

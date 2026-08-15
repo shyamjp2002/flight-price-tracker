@@ -29,9 +29,9 @@ class MockProvider:
             base *= 1.8
         base *= 1 + 0.15 * (request.adults - 1)
 
-        minutes = datetime.now(timezone.utc).timestamp() / 60
-        wave = math.sin(minutes / 720 + rng.random() * math.pi) * 0.08
-        jitter = random.Random(int(minutes)).uniform(-0.04, 0.04)
+        seconds = datetime.now(timezone.utc).timestamp()
+        wave = math.sin(seconds / 43200 + rng.random() * math.pi) * 0.08
+        jitter = random.Random(int(seconds)).uniform(-0.04, 0.04)
         price = round(base * (1 + wave + jitter), 2)
 
         return Quote(
