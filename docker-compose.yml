@@ -1,22 +1,17 @@
 services:
   tracker:
     build: .
+    container_name: flight-price-tracker
     ports:
       - "8000:8000"
-    environment:
-      PRICE_PROVIDER: ${PRICE_PROVIDER:-mock}
-      AMADEUS_CLIENT_ID: ${AMADEUS_CLIENT_ID:-}
-      AMADEUS_CLIENT_SECRET: ${AMADEUS_CLIENT_SECRET:-}
-      CHECK_INTERVAL_MINUTES: ${CHECK_INTERVAL_MINUTES:-60}
-      SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USERNAME: ${SMTP_USERNAME:-}
-      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-}
-      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
-      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
-      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
     volumes:
       - tracker-data:/srv/data
 

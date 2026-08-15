@@ -8,7 +8,27 @@ below your target.
 - **Providers:** pluggable — `mock` (deterministic prices, no API key) and `amadeus`
   (Flight Offers Search)
 
-## Quick start
+## Quick start (Docker Compose)
+
+One container builds the React UI and serves it from the API on port 8000, with the scheduler
+running inside it:
+
+```bash
+cp .env.example .env    # fill in email/Telegram/webhook and provider settings
+docker compose up -d --build
+```
+
+Open http://localhost:8000. Compose reads every variable from `.env`, restarts the container after a
+reboot (`restart: unless-stopped`), and keeps watches and price history in the `tracker-data` volume.
+
+```bash
+docker compose logs -f                                    # follow checks and alerts
+curl -X POST http://localhost:8000/api/notifications/test # send a test alert
+curl -X POST http://localhost:8000/api/check-all          # check every watch now
+docker compose down                                       # stop (volume is kept)
+```
+
+## Local development
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
@@ -16,17 +36,6 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
 
 cd frontend && npm install && npm run dev          # http://localhost:5173 (proxies /api)
 ```
-
-With Docker (frontend is built and served by the API on port 8000):
-
-```bash
-cp .env.example .env    # fill in email/Telegram/webhook and provider settings
-docker compose up -d --build
-```
-
-That keeps running in the background with the scheduler checking every
-`CHECK_INTERVAL_MINUTES`; `docker compose logs -f` to follow it, `docker compose down` to stop. Price
-history lives in the `tracker-data` volume and survives restarts.
 
 ## Configuration
 
