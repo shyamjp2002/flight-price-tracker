@@ -1,0 +1,29 @@
+import type { Alert, CheckResult, PricePoint, Watch, WatchInput } from './types'
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...init,
+  })
+  if (!response.ok) {
+    const body = await response.text()
+    throw new Error(body || `${response.status} ${response.statusText}`)
+  }
+  if (response.status === 204) {
+    return undefined as T
+  }
+  return (await response.json()) as T
+}
+
+export const api = {
+  listWatches: () => request<Watch[]>('/api/watches'),
+  createWatch: (payload: WatchInput) =>
+    request<Watch>('/api/watches', { method: 'POST', body: JSON.stringify(payload) }),
+  deleteWatch: (id: number) => request<void>(`/api/watches/${id}`, { method: 'DELETE' }),
+  toggleWatch: (id: number, active: boolean) =>
+    request<Watch>(`/api/watches/${id}/active?active=${active}`, { method: 'POST' }),
+  prices: (id: number) => request<PricePoint[]>(`/api/watches/${id}/prices`),
+  checkWatch: (id: number) => request<CheckResult>(`/api/watches/${id}/check`, { method: 'POST' }),
+  checkAll: () => request<{ checked: number }>('/api/check-all', { method: 'POST' }),
+  alerts: () => request<Alert[]>('/api/alerts'),
+}
