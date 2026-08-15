@@ -2,6 +2,7 @@ import logging
 import sqlite3
 from datetime import date
 
+from app import notifiers
 from app.db import session
 from app.providers import ProviderError, SearchRequest, get_provider
 
@@ -131,12 +132,20 @@ async def check_watch(watch_id: int, provider_name: str = "") -> dict | None:
                 f"{row['origin']}→{row['destination']} on {row['depart_date']} dropped to "
                 f"{quote.currency} {quote.price:.2f} (previous low {previous:.2f})"
             )
-        if message:
+    delivered: list[str] = []
+    if message:
+        logger.info("ALERT: %s", message)
+        delivered = await notifiers.dispatch(
+            f"Fare alert: {row['origin']}→{row['destination']}", message
+        )
+        with session() as conn:
             conn.execute(
-                "INSERT INTO alerts (watch_id, price, currency, message) VALUES (?, ?, ?, ?)",
-                (watch_id, quote.price, quote.currency, message),
+                """
+                INSERT INTO alerts (watch_id, price, currency, message, delivered_to)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (watch_id, quote.price, quote.currency, message, ",".join(delivered)),
             )
-            logger.info("ALERT: %s", message)
 
     return {
         "watch_id": watch_id,
@@ -146,6 +155,7 @@ async def check_watch(watch_id: int, provider_name: str = "") -> dict | None:
         "deep_link": quote.deep_link,
         "alerted": bool(message),
         "message": message,
+        "delivered_to": delivered,
     }
 
 

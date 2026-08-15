@@ -56,4 +56,5 @@ class Alert(BaseModel):
     price: float
     currency: str
     message: str
+    delivered_to: str = ""
     created_at: str

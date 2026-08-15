@@ -83,6 +83,9 @@ export default function App() {
             {alerts.map((alert) => (
               <li key={alert.id}>
                 <span className="muted">{alert.created_at}</span> {alert.message}
+                {alert.delivered_to && (
+                  <span className="muted"> — sent via {alert.delivered_to.split(',').join(', ')}</span>
+                )}
               </li>
             ))}
           </ul>
