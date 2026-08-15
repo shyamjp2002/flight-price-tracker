@@ -20,8 +20,13 @@ cd frontend && npm install && npm run dev          # http://localhost:5173 (prox
 With Docker (frontend is built and served by the API on port 8000):
 
 ```bash
-docker compose up --build
+cp .env.example .env    # fill in email/Telegram/webhook and provider settings
+docker compose up -d --build
 ```
+
+That keeps running in the background with the scheduler checking every
+`CHECK_INTERVAL_MINUTES`; `docker compose logs -f` to follow it, `docker compose down` to stop. Price
+history lives in the `tracker-data` volume and survives restarts.
 
 ## Configuration
 
