@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import './App.css'
 import { api } from './api'
+import { ExplorePanel } from './components/ExplorePanel'
 import { WatchCard } from './components/WatchCard'
 import { WatchForm } from './components/WatchForm'
 import type { Alert, Watch, WatchInput } from './types'
@@ -11,6 +12,8 @@ export default function App() {
   const [provider, setProvider] = useState('')
   const [error, setError] = useState('')
   const [checkingAll, setCheckingAll] = useState(false)
+  const [sendingDigest, setSendingDigest] = useState(false)
+  const [digestNote, setDigestNote] = useState('')
 
   const refresh = useCallback(async () => {
     try {
@@ -37,6 +40,23 @@ export default function App() {
     await refresh()
   }
 
+  const emailDigest = async () => {
+    setSendingDigest(true)
+    setError('')
+    try {
+      const result = await api.sendDigest()
+      setDigestNote(
+        result.delivered_to.length
+          ? `Digest sent via ${result.delivered_to.join(', ')}`
+          : 'Digest built, but no notification channel is configured',
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'digest failed')
+    } finally {
+      setSendingDigest(false)
+    }
+  }
+
   const checkAll = async () => {
     setCheckingAll(true)
     try {
@@ -57,14 +77,22 @@ export default function App() {
             <code>{provider || '…'}</code>
           </p>
         </div>
-        <button onClick={checkAll} disabled={checkingAll || watches.length === 0}>
-          {checkingAll ? 'Checking…' : 'Check all now'}
-        </button>
+        <div className="header-actions">
+          <button onClick={checkAll} disabled={checkingAll || watches.length === 0}>
+            {checkingAll ? 'Checking…' : 'Check all now'}
+          </button>
+          <button className="secondary" onClick={emailDigest} disabled={sendingDigest}>
+            {sendingDigest ? 'Sending…' : 'Email digest'}
+          </button>
+        </div>
       </header>
 
       {error && <p className="card error">{error}</p>}
+      {digestNote && <p className="card note">{digestNote}</p>}
 
       <WatchForm onCreate={create} />
+
+      <ExplorePanel />
 
       <section className="watches">
         {watches.length === 0 ? (

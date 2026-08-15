@@ -166,3 +166,91 @@ code {
   border-radius: 4px;
   padding: 1px 5px;
 }
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.airport-input {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.airport-options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  margin: 2px 0 0;
+  padding: 4px;
+  list-style: none;
+  background: #101827;
+  border: 1px solid #263349;
+  border-radius: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.airport-options button {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  background: none;
+  border: none;
+  padding: 6px 8px;
+  text-align: left;
+  font-size: 0.85rem;
+  color: inherit;
+  cursor: pointer;
+}
+
+.airport-options button:hover {
+  background: #1a2438;
+}
+
+.airport-options span {
+  color: #8b9bb8;
+  font-size: 0.75rem;
+}
+
+.verdict {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  border-left: 3px solid #3a4a66;
+  padding-left: 10px;
+}
+
+.verdict.buy {
+  border-color: #4ade80;
+}
+
+.verdict.wait {
+  border-color: #fbbf24;
+}
+
+.deals {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+.deals li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #1c2740;
+  padding-bottom: 6px;
+}
+
+.deals a {
+  margin-left: 8px;
+}

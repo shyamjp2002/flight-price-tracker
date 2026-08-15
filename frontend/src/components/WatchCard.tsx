@@ -8,6 +8,12 @@ interface Props {
   onChanged: () => Promise<void>
 }
 
+const VERDICTS: Record<string, string> = {
+  buy: 'Buy now',
+  wait: 'Wait',
+  watch: 'Keep watching',
+}
+
 function money(value: number | null, currency: string) {
   return value === null ? '—' : `${currency} ${value.toFixed(2)}`
 }
@@ -37,7 +43,8 @@ export function WatchCard({ watch, onChanged }: Props) {
     setNote('')
     try {
       const result = await api.checkWatch(watch.id)
-      setNote(result.message || `Now ${money(result.price, result.currency)}`)
+      const forDate = result.for_date === watch.depart_date ? '' : ` on ${result.for_date}`
+      setNote(result.message || `Now ${money(result.price, result.currency)}${forDate}`)
       await onChanged()
     } catch (err) {
       setNote(err instanceof Error ? err.message : 'check failed')
@@ -56,6 +63,8 @@ export function WatchCard({ watch, onChanged }: Props) {
     await onChanged()
   }
 
+  const cheapestDate = points.length ? points[points.length - 1].for_date : null
+
   const isDeal =
     watch.target_price !== null &&
     watch.latest_price !== null &&
@@ -65,12 +74,13 @@ export function WatchCard({ watch, onChanged }: Props) {
     <article className={`card watch ${watch.active ? '' : 'paused'}`}>
       <header>
         <h3>
-          {watch.origin} → {watch.destination}
+          {watch.origin_label || watch.origin} → {watch.destination_label || watch.destination}
         </h3>
         <span className="muted">
           {watch.depart_date}
           {watch.return_date ? ` – ${watch.return_date}` : ''} · {watch.adults} adult
           {watch.adults > 1 ? 's' : ''}
+          {watch.flex_days > 0 ? ` · ±${watch.flex_days}d flexible` : ''}
         </span>
       </header>
 
@@ -92,6 +102,16 @@ export function WatchCard({ watch, onChanged }: Props) {
           <dd>{watch.checks}</dd>
         </div>
       </dl>
+
+      {watch.recommendation && (
+        <p className={`verdict ${watch.recommendation.verdict}`}>
+          <strong>{VERDICTS[watch.recommendation.verdict]}</strong> {watch.recommendation.reason}
+        </p>
+      )}
+
+      {cheapestDate && cheapestDate !== watch.depart_date && (
+        <p className="muted">Cheapest date found: {cheapestDate}</p>
+      )}
 
       {note && <p className="note">{note}</p>}
 
